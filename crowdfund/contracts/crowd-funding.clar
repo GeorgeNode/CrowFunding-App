@@ -9,6 +9,7 @@
 (define-constant err-deadline-passed (err u104))
 (define-constant err-goal-not-reached (err u105))
 (define-constant err-already-claimed (err u106))
+(define-constant  err-transfer-failed (err u107))
 
 ;; Data Maps
 (define-map campaigns
@@ -68,3 +69,29 @@
   )
 )
 
+(define-public (contribute (campaign-id uint) (amount uint))
+  (let
+    (
+      (campaign (unwrap! (map-get? campaigns { campaign-id: campaign-id }) (err err-not-found)))
+      (current-raised (get raised campaign))
+      (new-raised (+ current-raised amount))
+    )
+    (asserts! (< (current-time) (get deadline campaign)) (err err-deadline-passed))
+    (asserts! (> amount u0) (err err-invalid-amount))
+    (match (stx-transfer? amount tx-sender (as-contract tx-sender))
+      success
+        (begin
+          (map-set campaigns
+            { campaign-id: campaign-id }
+            (merge campaign { raised: new-raised })
+          )
+          (map-set contributions
+            { campaign-id: campaign-id, contributor: tx-sender }
+            { amount: (+ amount (default-to u0 (get amount (map-get? contributions { campaign-id: campaign-id, contributor: tx-sender })))) }
+          )
+          (ok true)
+        )
+      error (err err-transfer-failed)
+    )
+  )
+)
