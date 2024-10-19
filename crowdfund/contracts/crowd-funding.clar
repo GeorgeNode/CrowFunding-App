@@ -37,6 +37,13 @@
 (define-private (current-time)
   (unwrap-panic (get-block-info? time u0)))
 
+  ;; Read-only Functions
+(define-read-only (get-campaign-details (campaign-id uint))
+  (map-get? campaigns { campaign-id: campaign-id }))
+
+(define-read-only (get-contribution (campaign-id uint) (contributor principal))
+  (map-get? contributions { campaign-id: campaign-id, contributor: contributor }))
+
 
 ;; Public Functions
 (define-public (create-campaign (goal uint) (deadline uint))
@@ -60,3 +67,4 @@
     (ok campaign-id)
   )
 )
+
