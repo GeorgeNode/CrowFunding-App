@@ -29,3 +29,10 @@
 
 ;; Variables
 (define-data-var campaign-nonce uint u0)
+
+;; Private Functions
+(define-private (is-owner)
+  (is-eq tx-sender contract-owner))
+
+(define-private (current-time)
+  (unwrap-panic (get-block-info? time u0)))
