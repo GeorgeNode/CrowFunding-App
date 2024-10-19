@@ -36,3 +36,27 @@
 
 (define-private (current-time)
   (unwrap-panic (get-block-info? time u0)))
+
+
+;; Public Functions
+(define-public (create-campaign (goal uint) (deadline uint))
+  (let
+    (
+      (campaign-id (var-get campaign-nonce))
+    )
+    (asserts! (> goal u0) (err err-invalid-amount))
+    (asserts! (> deadline (current-time)) (err err-deadline-passed))
+    (map-insert campaigns
+      { campaign-id: campaign-id }
+      {
+        owner: tx-sender,
+        goal: goal,
+        raised: u0,
+        deadline: deadline,
+        claimed: false
+      }
+    )
+    (var-set campaign-nonce (+ campaign-id u1))
+    (ok campaign-id)
+  )
+)
