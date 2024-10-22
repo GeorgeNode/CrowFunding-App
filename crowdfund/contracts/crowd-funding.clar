@@ -28,6 +28,11 @@
   { amount: uint }
 )
 
+(define-map campaign-descriptions
+  { campaign-id: uint }
+  { description: (string-utf8 500) })
+
+
 ;; Variables
 (define-data-var campaign-nonce uint u0)
 
@@ -161,3 +166,8 @@
     campaign (let ((progress (* (/ (get raised campaign) (get goal campaign)) u100)))
               (ok progress))
     (err err-not-found)))
+
+;; Read-only function to get campaign description
+(define-read-only (get-campaign-description (campaign-id uint))
+  (map-get? campaign-descriptions { campaign-id: campaign-id }))
+
