@@ -28,6 +28,11 @@
   { amount: uint }
 )
 
+(define-map campaign-descriptions
+  { campaign-id: uint }
+  { description: (string-utf8 500) })
+
+
 ;; Variables
 (define-data-var campaign-nonce uint u0)
 
@@ -137,4 +142,32 @@
     )
   )
 )
+
+(define-read-only (get-total-campaigns)
+  (var-get campaign-nonce))
+
+(define-read-only (is-campaign-successful (campaign-id uint))
+  (match (get-campaign-details campaign-id)
+    campaign (and 
+              (>= (get raised campaign) (get goal campaign))
+              (>= (current-time) (get deadline campaign)))
+    false))
+
+(define-read-only (get-campaign-time-left (campaign-id uint))
+  (match (get-campaign-details campaign-id)
+    campaign (let ((time-left (- (get deadline campaign) (current-time))))
+              (if (< (current-time) (get deadline campaign))
+                (ok time-left)
+                (ok u0)))
+    (err err-not-found)))
+
+(define-read-only (get-campaign-progress (campaign-id uint))
+  (match (get-campaign-details campaign-id)
+    campaign (let ((progress (* (/ (get raised campaign) (get goal campaign)) u100)))
+              (ok progress))
+    (err err-not-found)))
+
+;; Read-only function to get campaign description
+(define-read-only (get-campaign-description (campaign-id uint))
+  (map-get? campaign-descriptions { campaign-id: campaign-id }))
 
