@@ -138,3 +138,12 @@
   )
 )
 
+(define-read-only (get-total-campaigns)
+  (var-get campaign-nonce))
+
+(define-read-only (is-campaign-successful (campaign-id uint))
+  (match (get-campaign-details campaign-id)
+    campaign (and 
+              (>= (get raised campaign) (get goal campaign))
+              (>= (current-time) (get deadline campaign)))
+    false))
