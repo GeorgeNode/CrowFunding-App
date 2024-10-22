@@ -155,3 +155,9 @@
                 (ok time-left)
                 (ok u0)))
     (err err-not-found)))
+
+(define-read-only (get-campaign-progress (campaign-id uint))
+  (match (get-campaign-details campaign-id)
+    campaign (let ((progress (* (/ (get raised campaign) (get goal campaign)) u100)))
+              (ok progress))
+    (err err-not-found)))
