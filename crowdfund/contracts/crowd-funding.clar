@@ -147,3 +147,11 @@
               (>= (get raised campaign) (get goal campaign))
               (>= (current-time) (get deadline campaign)))
     false))
+
+(define-read-only (get-campaign-time-left (campaign-id uint))
+  (match (get-campaign-details campaign-id)
+    campaign (let ((time-left (- (get deadline campaign) (current-time))))
+              (if (< (current-time) (get deadline campaign))
+                (ok time-left)
+                (ok u0)))
+    (err err-not-found)))
