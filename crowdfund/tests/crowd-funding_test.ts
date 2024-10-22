@@ -45,3 +45,53 @@ Clarinet.test({
         assertEquals(block.receipts.length, 1);
     },
 });
+
+Clarinet.test({
+    name: "Ensure that users can contribute to a campaign",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const deployer = accounts.get("deployer")!;
+        const user1 = accounts.get("wallet_1")!;
+        const user2 = accounts.get("wallet_2")!;
+
+        let block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "create-campaign",
+                [types.uint(1000000), types.uint(100)],
+                user1.address
+            ),
+            Tx.contractCall("crowdfunding", "contribute",
+                [types.uint(0), types.uint(500000)], // Contributing to campaign 0
+                user2.address
+            )
+        ]);
+
+        assertEquals(block.receipts.length, 2);
+        assertEquals(block.receipts[1].result, '(ok true)');
+    },
+});
+
+Clarinet.test({
+    name: "Ensure campaign progress can be tracked",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const user1 = accounts.get("wallet_1")!;
+        const user2 = accounts.get("wallet_2")!;
+
+        let block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "create-campaign",
+                [types.uint(1000000), types.uint(100)],
+                user1.address
+            ),
+            Tx.contractCall("crowdfunding", "contribute",
+                [types.uint(0), types.uint(500000)],
+                user2.address
+            ),
+            Tx.contractCall("crowdfunding", "get-campaign-progress",
+                [types.uint(0)],
+                user1.address
+            )
+        ]);
+
+        assertEquals(block.receipts.length, 3);
+    },
+});
