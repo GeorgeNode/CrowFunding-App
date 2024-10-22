@@ -163,3 +163,87 @@ Clarinet.test({
         assertEquals(block.receipts[0].result, '(ok true)');
     },
 });
+
+Clarinet.test({
+    name: "Ensure that invalid operations are rejected",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const user1 = accounts.get("wallet_1")!;
+        const user2 = accounts.get("wallet_2")!;
+
+        // Try to create campaign with invalid goal
+        let block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "create-campaign",
+                [types.uint(0), types.uint(100)],
+                user1.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(err u103)'); // err-invalid-amount
+
+        // Try to contribute to non-existent campaign
+        block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "contribute",
+                [types.uint(99), types.uint(1000)],
+                user2.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(err u101)'); // err-not-found
+
+        // Create valid campaign
+        block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "create-campaign",
+                [types.uint(1000000), types.uint(10)],
+                user1.address
+            )
+        ]);
+
+        // Try to claim before deadline
+        block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "claim-funds",
+                [types.uint(0)],
+                user1.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(err u104)'); // err-deadline-passed
+    },
+});
+
+Clarinet.test({
+    name: "Ensure proper error handling for double claims and refunds",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const user1 = accounts.get("wallet_1")!;
+        const user2 = accounts.get("wallet_2")!;
+
+        // Create and fund successful campaign
+        let block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "create-campaign",
+                [types.uint(1000000), types.uint(10)],
+                user1.address
+            ),
+            Tx.contractCall("crowdfunding", "contribute",
+                [types.uint(0), types.uint(1000000)],
+                user2.address
+            )
+        ]);
+
+        chain.mineEmptyBlockUntil(12);
+
+        // Claim funds
+        block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "claim-funds",
+                [types.uint(0)],
+                user1.address
+            )
+        ]);
+
+        // Try to claim again
+        block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "claim-funds",
+                [types.uint(0)],
+                user1.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(err u106)'); // err-already-claimed
+    },
+});
