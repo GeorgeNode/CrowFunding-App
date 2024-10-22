@@ -95,3 +95,71 @@ Clarinet.test({
         assertEquals(block.receipts.length, 3);
     },
 });
+
+Clarinet.test({
+    name: "Ensure that campaign owner can claim funds after successful campaign",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const user1 = accounts.get("wallet_1")!;
+        const user2 = accounts.get("wallet_2")!;
+
+        // Create campaign and contribute
+        let block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "create-campaign",
+                [types.uint(1000000), types.uint(10)],
+                user1.address
+            ),
+            Tx.contractCall("crowdfunding", "contribute",
+                [types.uint(0), types.uint(1000000)],
+                user2.address
+            )
+        ]);
+
+        // Mine blocks to reach deadline
+        chain.mineEmptyBlockUntil(12);
+
+        // Try to claim funds
+        block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "claim-funds",
+                [types.uint(0)],
+                user1.address
+            )
+        ]);
+
+        assertEquals(block.receipts[0].result, '(ok true)');
+    },
+});
+
+Clarinet.test({
+    name: "Ensure that contributors can get refund for failed campaign",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const user1 = accounts.get("wallet_1")!;
+        const user2 = accounts.get("wallet_2")!;
+
+        // Create campaign and contribute less than goal
+        let block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "create-campaign",
+                [types.uint(1000000), types.uint(10)],
+                user1.address
+            ),
+            Tx.contractCall("crowdfunding", "contribute",
+                [types.uint(0), types.uint(500000)],
+                user2.address
+            )
+        ]);
+
+        // Mine blocks to reach deadline
+        chain.mineEmptyBlockUntil(12);
+
+        // Try to get refund
+        block = chain.mineBlock([
+            Tx.contractCall("crowdfunding", "refund",
+                [types.uint(0)],
+                user2.address
+            )
+        ]);
+
+        assertEquals(block.receipts[0].result, '(ok true)');
+    },
+});
